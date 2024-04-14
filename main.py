@@ -2,11 +2,38 @@ from flask import Flask, render_template, jsonify, request
 from datetime import datetime
 import logging
 import time
+import glob
+import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
-# Example list of valid stations
-VALID_STATIONS = ["10", "15", "20"]
+
+# Get list of txt files in "data_small" directory
+filepaths = glob.glob("data_small/TG*.txt")
+
+
+def find_file(station):
+    station = str(station).zfill(6)
+    for filepath in filepaths:
+        if filepath.find(station) != -1:
+            return filepath
+    return None
+
+
+def read_file(filepath):
+    """Read temperature data from the given file."""
+    df = pd.read_csv(filepath, skiprows=20, parse_dates=["    DATE"])
+    df["TG0"] = df['   TG'].mask(df['   TG'] == -9999, np.nan)
+    df['TG'] = df['TG0'] / 10
+    return df
+
+
+def get_temperature(df, date):
+    """Get the temperature for the given date."""
+    date_obj = datetime.strptime(date, "%Y%m%d")
+    return df.loc[df["    DATE"] == f"{date_obj.date()}"]['TG'].squeeze()
+
 
 # Configure logger
 logging.basicConfig(level=logging.DEBUG)
@@ -45,21 +72,23 @@ def weather_api(station, date):
             app.logger.error("Missing station or date")
             return jsonify({"error": "Station and date parameters are required."}), 400
 
-        if station not in VALID_STATIONS:
+        filepath = find_file(station)
+        if filepath is None:
             app.logger.error(f"Invalid station: {station}")
             return jsonify({"error": f"Invalid station: {station}"}), 400
+
+        df = read_file(filepath)
 
         try:
             # Validate date format and check if it's a valid date
             date_obj = datetime.strptime(date, "%Y%m%d")
-            if not (1900 <= date_obj.year <= 2100):
-                raise ValueError("Invalid year. Year must be between 1900 and 2100.")
+            if not (1988 <= date_obj.year <= 2100):
+                raise ValueError("Invalid year. Year must be between 1988 and 2100.")
         except ValueError as ve:
             app.logger.error(f"Invalid date format: {ve}")
             return jsonify({"error": f"Invalid date format. Date format must be YYYYMMDD."}), 400
 
-        # Fetch weather data from database or external API
-        temperature = 23  # Placeholder temperature value
+        temperature = get_temperature(df, date)
 
         # Log API output
         app.logger.info(f"Response: Station={station}, Date={date}, Temperature={temperature}")
