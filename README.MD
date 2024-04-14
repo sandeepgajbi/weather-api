@@ -1,2 +1,2 @@
 ## Weather API
-This app provide average weather of the station user requests.
+This app provide temperature of the station that user requests.
