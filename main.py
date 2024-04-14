@@ -8,9 +8,11 @@ import numpy as np
 
 app = Flask(__name__)
 
-
 # Get list of txt files in "data_small" directory
 filepaths = glob.glob("data_small/TG*.txt")
+
+stations = pd.read_csv("data_small/stations.txt", skiprows=17)
+stations = stations[['STAID', 'STANAME                                 ']][:101]
 
 
 def find_file(station):
@@ -58,7 +60,7 @@ def after_request(response):
 
 @app.route("/")
 def home():
-    return render_template("home.html")
+    return render_template("home.html", data=stations.to_html())
 
 
 @app.route("/api/v1/<station>/<date>")
