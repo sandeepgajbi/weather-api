@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 @app.before_request
 def before_request():
-    request._start_time = time.time()  # type: ignore
+    request._start_time = time.time()
 
 
 @app.after_request
@@ -23,7 +23,7 @@ def after_request(response):
     app.logger.info(f"HTTP status: {response.status_code}")
 
     # Calculate time taken to respond
-    time_taken = time.time() - getattr(request, '_start_time', time.time())  # type: ignore
+    time_taken = time.time() - getattr(request, '_start_time')
     app.logger.info(f"Time taken to respond: {time_taken:.6f} seconds")
 
     return response
